@@ -1,7 +1,5 @@
 //Name: Steven Acosta-Pligo
 //Class: CSC3320
-//Description: guessing minigame, user tries to crack the 'code' by guessing three different numbers while given three hints,
-//whether it is too high or low, if any digits are correct and in the right postion, if any digits are correct but in the wrong position
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,15 +7,22 @@
 #include <ctype.h>
 #include <string.h>
 
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 //define statementes, tries, digits (how many are in the secret code), range(max value)
 #define TRIES 8
 #define DIGITS 3
 #define RANGE 9
 
+// Global state for the game
+static int secret_code[DIGITS];
+static int current_remaining_tries;
+static int game_over_flag; // 0 = game on, 1 = game won, 2 = game lost
+
 //function that generates a random secret code
 void generateCode(int code[]) {
-    //random number generator
-    srand(time(0));
     for (int i = 0; i < DIGITS; i++) {
         //assigns random integer in to th ecurrent index of the secret code array
         code[i] = rand() % (RANGE + 1);
@@ -25,111 +30,150 @@ void generateCode(int code[]) {
 }
 
 //converts the secret code into an integer for comparison (too high or too low)
-int codeToInt(int code[]) {
+int codeToInt(int code_array[]) { // Renamed parameter to avoid conflict
     int number = 0;
     for (int i = 0; i < DIGITS; i++) {
-        number = number * 10 + code[i];
+        number = number * 10 + code_array[i];
     }
     return number;
 }
 
+#ifdef __EMSCRIPTEN__
+EMSCRIPTEN_KEEPALIVE
+#endif
+void init_minigame() {
+    srand(time(NULL)); // Seed random number generator
+    generateCode(secret_code);
+    current_remaining_tries = TRIES;
+    game_over_flag = 0;
+    printf("Welcome to the Code Guessing Minigame!\n");
+    printf("Try to guess the %d-digit secret code. Digits are between 0 and %d.\n", DIGITS, RANGE);
+    printf("%d tries remaining. Enter your guess:\n", current_remaining_tries);
+    fflush(stdout);
+}
 
-int main() {
-    //declares integers, charactres, and executes the code above
-    int code[DIGITS];
-    generateCode(code);
-    int remaining_tries = TRIES;
-    int correct_position, correct_digit;
-    char input[10];
+#ifdef __EMSCRIPTEN__
+EMSCRIPTEN_KEEPALIVE
+#endif
+void process_minigame_guess(const char* input_str) {
+    if (game_over_flag != 0) {
+        printf("Game is over. Please initialize a new game.\n");
+        if (game_over_flag == 1) printf("You already won!\n");
+        if (game_over_flag == 2) {
+            printf("You already lost. The code was: ");
+            for (int i = 0; i < DIGITS; i++) printf("%d", secret_code[i]);
+            printf("\n");
+        }
+        fflush(stdout);
+        return;
+    }
 
-    int secret_code_number = codeToInt(code);
+    if (current_remaining_tries <= 0) {
+        printf("You've run out of tries. Game over.\n");
+        printf("The correct code was: ");
+        for (int i = 0; i < DIGITS; i++) printf("%d", secret_code[i]);
+        printf("\n");
+        game_over_flag = 2; // Lost
+        fflush(stdout);
+        return;
+    }
 
-    //while the ramined tries are above 0...
-    while (remaining_tries > 0) {
-        //statement
-        printf("%d tries remaining. What is the code?  ", remaining_tries);
-        //user input
-        fgets(input, sizeof(input), stdin);
+    printf("Processing guess: %s\n", input_str);
 
-        //if user quits
-        if (input[0] == 'q') {
-            printf("Game ended by user.\n");
+    int guess[DIGITS];
+    int valid_input = 1;
+
+    // Validate length (input_str includes newline if coming from some fgets-like sources, but from JS it might not)
+    // strlen might be tricky if input_str is not null-terminated as expected by C.
+    // Assuming JS sends a clean, null-terminated string of DIGITS length.
+    size_t len = strlen(input_str);
+    if (len != DIGITS) {
+        printf("Invalid input length. Please enter exactly %d digits. You entered %zu.\n", DIGITS, len);
+        fflush(stdout);
+        return; // Don't decrement tries for clearly invalid format
+    }
+
+    for (int i = 0; i < DIGITS; i++) {
+        if (!isdigit(input_str[i])) {
+            valid_input = 0;
             break;
         }
-        
-        //enters exactly the specified amount in digits (3), if not than continue and skips the rest of the loop
-        int guess[DIGITS];
-        int valid_input = 1;
-        if (strlen(input) - 1 != DIGITS) {
-            printf("Invalid input. Please enter exactly %d digits.\n", DIGITS);
-            continue;
-        }
+        guess[i] = input_str[i] - '0';
+    }
 
-        //if any character is not a digit, than it sets valid input to 0 and breaks the code
-        for (int i = 0; i < DIGITS; i++) {
-            if (!isdigit(input[i])) {
-                valid_input = 0;
-                break;
-            }
-        //if it is valid,  than it converts each character into an integer and puts it into the guess array
-            guess[i] = input[i] - '0';
-        }
-        
-        //if it is not a invalid input than continue and skips the rest of the loop
-        if (!valid_input) {
-            printf("Invalid input. Enter only digits.\n");
-            continue;
-        }
+    if (!valid_input) {
+        printf("Invalid input. Enter only digits.\n");
+        fflush(stdout);
+        return; // Don't decrement tries for clearly invalid format
+    }
 
-        int guess_number = 0;
-        for (int i = 0; i < DIGITS; i++) {
-            guess_number = guess_number * 10 + guess[i];
-        }
+    current_remaining_tries--;
 
-        correct_position = 0;
-        correct_digit = 0;
-        //calcualtes poistion and digit
-        for (int i = 0; i < DIGITS; i++) {
-            //if correct postion
-            if (guess[i] == code[i]) {
-                correct_position++;
-            //check for correct digit in wrong postion
-            } else {
-                for (int j = 0; j < DIGITS; j++) {
-                    //makes sure they are not in the same postoin
-                    if (i != j && guess[i] == code[j]) {
-                        //increments correct digit only
-                        correct_digit++;
-                        break;
-                    }
+    int guess_number = codeToInt(guess);
+    int secret_code_number_val = codeToInt(secret_code); // Renamed to avoid conflict
+
+    int correct_position = 0;
+    int correct_digit = 0;
+
+    for (int i = 0; i < DIGITS; i++) {
+        if (guess[i] == secret_code[i]) {
+            correct_position++;
+        } else {
+            for (int j = 0; j < DIGITS; j++) {
+                if (i != j && guess[i] == secret_code[j]) {
+                    correct_digit++;
+                    break;
                 }
             }
         }
-
-        //if it is in the correct positoin
-        if (correct_position == DIGITS) {
-            printf("You opened the vault!\n");
-            break;
-        //if it not correct, than tells the user current tries, correct postions, and correct digits
-        }  else {
-            //gives feedback based on whether the guess is too high or too low
-            if (guess_number > secret_code_number) {
-                printf("Too high, %d digits are correct and in the right place, %d digits are correct but in the wrong place.\n", correct_position, correct_digit);
-            } else {
-                printf("Too low, %d digits are correct and in the right place, %d digits are correct but in the wrong place.\n", correct_position, correct_digit);
-            }
-        }
-
-        //decrements tries
-        remaining_tries--;
     }
 
-    //if the user runs out of tries
-    if (remaining_tries == 0) {
-        printf("You've run out of tries. The correct code was: ");
-        for (int i = 0; i < DIGITS; i++) printf("%d", code[i]);
+    if (correct_position == DIGITS) {
+        printf("You opened the vault! The code was: ");
+        for (int i = 0; i < DIGITS; i++) printf("%d", secret_code[i]);
         printf("\n");
+        game_over_flag = 1; // Won
+    } else {
+        if (guess_number > secret_code_number_val) {
+            printf("Too high. ");
+        } else {
+            printf("Too low. ");
+        }
+        printf("%d correct digit(s) in the right place, %d correct digit(s) in the wrong place.\n", correct_position, correct_digit);
+        if (current_remaining_tries > 0) {
+            printf("%d tries remaining. Enter your guess:\n", current_remaining_tries);
+        } else {
+            printf("You've run out of tries. Game over.\n");
+            printf("The correct code was: ");
+            for (int i = 0; i < DIGITS; i++) printf("%d", secret_code[i]);
+            printf("\n");
+            game_over_flag = 2; // Lost
+        }
     }
+    fflush(stdout);
+}
 
+// Keep main for local testing if desired, but it won't be called by Emscripten in this setup
+#ifndef __EMSCRIPTEN__
+int main() {
+    init_minigame(); // Call the new init function
+
+    char input_buffer[100]; // Buffer for fgets
+
+    while(game_over_flag == 0 && current_remaining_tries > 0) {
+        if (fgets(input_buffer, sizeof(input_buffer), stdin) != NULL) {
+            // Remove newline character if present
+            input_buffer[strcspn(input_buffer, "\n")] = 0;
+            if (strlen(input_buffer) == 0) continue; // Skip empty lines
+            if (input_buffer[0] == 'q') {
+                 printf("Game ended by user.\n");
+                 break;
+            }
+            process_minigame_guess(input_buffer);
+        } else {
+            break; // EOF or error
+        }
+    }
     return 0;
 }
+#endif

@@ -12,6 +12,9 @@
 #include <fcntl.h>   // For open()
 #include <unistd.h>  // For read() and close()
 #include <time.h> //for sleep() / UNIX/snowball uses <time.h>
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
 //
 #define MAX_SONGS 5 //helps with the size of the table
@@ -59,10 +62,13 @@ void displayLyrics(const char *fileName) {
     //reads the contenet line by line
     while ((bytesRead = read(fd, buffer, sizeof(buffer) - 1)) > 0) {
         buffer[bytesRead] = '\0';
-        //prints the contenet line by line
         printf("%s", buffer);
         fflush(stdout);
+        #ifdef __EMSCRIPTEN__
+        emscripten_sleep(1000); // 1000 milliseconds
+        #else
         sleep(1);  // delay of 1 second
+        #endif
     }
 
     // Check if reading was successful

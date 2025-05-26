@@ -1,0 +1,83 @@
+.main {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6rem;
+  min-height: 100vh;
+  background-color: var(--background); /* Using CSS variables from globals.css */
+  color: var(--foreground);
+}
+
+.description {
+  display: inherit;
+  justify-content: inherit;
+  align-items: inherit;
+  font-size: 0.85rem;
+  max-width: var(--max-width);
+  width: 100%;
+  z-index: 2;
+  font-family: var(--font-mono);
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.description h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  font-family: var(--font-sans); /* Using Geist Sans from layout */
+}
+
+.description p {
+  font-size: 1.2rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Responsive grid */
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 800px; /* Adjust as needed */
+}
+
+.card {
+  padding: 1.5rem;
+  border-radius: 12px; /* Softer corners */
+  background: rgba(var(--card-rgb), 0.1); /* Assuming --card-rgb is defined or use a solid color */
+  border: 1px solid rgba(var(--card-border-rgb), 0.2); /* Assuming --card-border-rgb or use a solid color */
+  transition: background 0.15s ease, border-color 0.15s ease;
+  text-decoration: none; /* Remove underline from links */
+  color: inherit; /* Inherit text color */
+}
+
+.card:hover {
+  background: rgba(var(--card-rgb), 0.15);
+  border-color: rgba(var(--card-border-rgb), 0.3);
+}
+
+.card h2 {
+  font-family: var(--font-sans);
+  font-size: 1.5rem; /* Larger heading for cards */
+  margin-bottom: 0.75rem;
+  font-weight: 600; /* Bolder heading */
+}
+
+.card p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.6; /* Improved readability */
+  opacity: 0.8; /* Slightly less prominent paragraph text */
+}
+
+/* Define some default card colors if not coming from globals -- you might need to adjust these */
+:root {
+  --card-rgb: 100, 100, 100; /* Example: a neutral gray */
+  --card-border-rgb: 150, 150, 150;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --card-rgb: 50, 50, 50; /* Darker card for dark mode */
+    --card-border-rgb: 80, 80, 80;
+  }
+}
