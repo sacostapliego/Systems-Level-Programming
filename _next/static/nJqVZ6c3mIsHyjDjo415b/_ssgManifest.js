@@ -1,0 +1,1 @@
+self.__SSG_MANIFEST=new Set(["\u002Fprogram\u002F[programid]"]);self.__SSG_MANIFEST_CB&&self.__SSG_MANIFEST_CB()
