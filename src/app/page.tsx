@@ -3,8 +3,8 @@ import styles from './page.module.css'; // Assuming you have some styles
 
 export default function Home() {
   const programs = [
-    { id: 'inventory', name: 'Inventory Management System', description: 'Manage product inventory.' },
     { id: 'jukebox', name: 'Jukebox', description: 'Play song lyrics.' },
+    { id: 'inventory', name: 'Inventory Management System', description: 'Manage product inventory.' },
     { id: 'minigame', name: 'Minigame', description: 'Guess the secret code.' },
   ];
 

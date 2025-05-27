@@ -1,3 +1,9 @@
+var Module = (() => {
+  var _scriptName = typeof document != 'undefined' ? document.currentScript?.src : undefined;
+  return (
+async function(moduleArg = {}) {
+  var moduleRtn;
+
 // include: shell.js
 // The Module object: Our interface to the outside world. We import
 // and export values on it. There are various ways Module can be used:
@@ -12,7 +18,14 @@
 // after the generated code, you will need to define   var Module = {};
 // before the code. Then that object will be used in the code, and you
 // can continue to use Module afterwards as well.
-var Module = typeof Module != 'undefined' ? Module : {};
+var Module = moduleArg;
+
+// Set up the promise that indicates the Module is initialized
+var readyPromiseResolve, readyPromiseReject;
+var readyPromise = new Promise((resolve, reject) => {
+  readyPromiseResolve = resolve;
+  readyPromiseReject = reject;
+});
 
 // Determine the runtime environment we are in. You can customize this by
 // setting the ENVIRONMENT setting at compile time (see settings.js).
@@ -38,10 +51,6 @@ var thisProgram = './this.program';
 var quit_ = (status, toThrow) => {
   throw toThrow;
 };
-
-// In MODULARIZE mode _scriptName needs to be captured already at the very top of the page immediately when the page is parsed, so it is generated there
-// before the page load. In non-MODULARIZE modes generate it here.
-var _scriptName = typeof document != 'undefined' ? document.currentScript?.src : undefined;
 
 if (typeof __filename != 'undefined') { // Node
   _scriptName = __filename;
@@ -103,11 +112,6 @@ readAsync = async (filename, binary = true) => {
   }
 
   arguments_ = process.argv.slice(2);
-
-  // MODULARIZE will export the module in the proper place outside, we don't need to export here
-  if (typeof module != 'undefined') {
-    module['exports'] = Module;
-  }
 
   quit_ = (status, toThrow) => {
     process.exitCode = status;
@@ -380,15 +384,13 @@ function isExportedByForceFilesystem(name) {
  * their build, or no symbols that no longer exist.
  */
 function hookGlobalSymbolAccess(sym, func) {
-  if (typeof globalThis != 'undefined' && !Object.getOwnPropertyDescriptor(globalThis, sym)) {
-    Object.defineProperty(globalThis, sym, {
-      configurable: true,
-      get() {
-        func();
-        return undefined;
-      }
-    });
-  }
+  // In MODULARIZE mode the generated code runs inside a function scope and not
+  // the global scope, and JavaScript does not provide access to function scopes
+  // so we cannot dynamically modify the scrope using `defineProperty` in this
+  // case.
+  //
+  // In this mode we simply ignore requests for `hookGlobalSymbolAccess`. Since
+  // this is a debug-only feature, skipping it is not major issue.
 }
 
 function missingGlobal(sym, msg) {
@@ -610,6 +612,7 @@ function abort(what) {
   /** @suppress {checkTypes} */
   var e = new WebAssembly.RuntimeError(what);
 
+  readyPromiseReject(e);
   // Throw the error whether or not MODULARIZE is set because abort is used
   // in code paths apart from instantiation where an exception is expected
   // to be thrown when abort is called.
@@ -788,9 +791,15 @@ async function createWasm() {
   }
 
   wasmBinaryFile ??= findWasmBinary();
+  try {
     var result = await instantiateAsync(wasmBinary, wasmBinaryFile, info);
     var exports = receiveInstantiationResult(result);
     return exports;
+  } catch (e) {
+    // If instantiation fails, reject the module ready promise.
+    readyPromiseReject(e);
+    return Promise.reject(e);
+  }
 }
 
 // end include: preamble.js
@@ -1257,16 +1266,6 @@ async function createWasm() {
 // include: postlibrary.js
 // This file is included after the automatically-generated JS library code
 // but before the wasm module is created.
-
-if (typeof ExitStatus === 'undefined') {
-  class ExitStatus {
-      name = 'ExitStatus';
-      constructor(status) {
-        this.message = `Program terminated with exit(${status})`;
-        this.status = status;
-      }
-    }
-}
 
 {
 
@@ -1740,23 +1739,22 @@ var wasmImports = {
   /** @export */
   fd_write: _fd_write
 };
-var wasmExports;
-createWasm();
+var wasmExports = await createWasm();
 // Imports from the Wasm binary.
 var ___wasm_call_ctors = createExportWrapper('__wasm_call_ctors', 0);
 var _init_minigame = Module['_init_minigame'] = createExportWrapper('init_minigame', 0);
 var _fflush = createExportWrapper('fflush', 1);
 var _process_minigame_guess = Module['_process_minigame_guess'] = createExportWrapper('process_minigame_guess', 1);
 var _strerror = createExportWrapper('strerror', 1);
-var _emscripten_stack_get_end = () => (_emscripten_stack_get_end = wasmExports['emscripten_stack_get_end'])();
-var _emscripten_stack_get_base = () => (_emscripten_stack_get_base = wasmExports['emscripten_stack_get_base'])();
+var _emscripten_stack_get_end = wasmExports['emscripten_stack_get_end']
+var _emscripten_stack_get_base = wasmExports['emscripten_stack_get_base']
 var _malloc = Module['_malloc'] = createExportWrapper('malloc', 1);
 var _free = Module['_free'] = createExportWrapper('free', 1);
-var _emscripten_stack_init = () => (_emscripten_stack_init = wasmExports['emscripten_stack_init'])();
-var _emscripten_stack_get_free = () => (_emscripten_stack_get_free = wasmExports['emscripten_stack_get_free'])();
-var __emscripten_stack_restore = (a0) => (__emscripten_stack_restore = wasmExports['_emscripten_stack_restore'])(a0);
-var __emscripten_stack_alloc = (a0) => (__emscripten_stack_alloc = wasmExports['_emscripten_stack_alloc'])(a0);
-var _emscripten_stack_get_current = () => (_emscripten_stack_get_current = wasmExports['emscripten_stack_get_current'])();
+var _emscripten_stack_init = wasmExports['emscripten_stack_init']
+var _emscripten_stack_get_free = wasmExports['emscripten_stack_get_free']
+var __emscripten_stack_restore = wasmExports['_emscripten_stack_restore']
+var __emscripten_stack_alloc = wasmExports['_emscripten_stack_alloc']
+var _emscripten_stack_get_current = wasmExports['emscripten_stack_get_current']
 
 
 // include: postamble.js
@@ -1801,6 +1799,7 @@ function run() {
 
     initRuntime();
 
+    readyPromiseResolve(Module);
     Module['onRuntimeInitialized']?.();
     consumedModuleProp('onRuntimeInitialized');
 
@@ -1866,3 +1865,42 @@ run();
 
 // end include: postamble.js
 
+// include: postamble_modularize.js
+// In MODULARIZE mode we wrap the generated code in a factory function
+// and return either the Module itself, or a promise of the module.
+//
+// We assign to the `moduleRtn` global here and configure closure to see
+// this as and extern so it won't get minified.
+
+moduleRtn = readyPromise;
+
+// Assertion for attempting to access module properties on the incoming
+// moduleArg.  In the past we used this object as the prototype of the module
+// and assigned properties to it, but now we return a distinct object.  This
+// keeps the instance private until it is ready (i.e the promise has been
+// resolved).
+for (const prop of Object.keys(Module)) {
+  if (!(prop in moduleArg)) {
+    Object.defineProperty(moduleArg, prop, {
+      configurable: true,
+      get() {
+        abort(`Access to module property ('${prop}') is no longer possible via the module constructor argument; Instead, use the result of the module constructor.`)
+      }
+    });
+  }
+}
+// end include: postamble_modularize.js
+
+
+
+  return moduleRtn;
+}
+);
+})();
+if (typeof exports === 'object' && typeof module === 'object') {
+  module.exports = Module;
+  // This default export looks redundant, but it allows TS to import this
+  // commonjs style module.
+  module.exports.default = Module;
+} else if (typeof define === 'function' && define['amd'])
+  define([], () => Module);
