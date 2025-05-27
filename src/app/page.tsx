@@ -11,7 +11,7 @@ export default function Home() {
   return (
     <main className={styles.main}>
       <div className={styles.description}>
-        <h1>Some C Programs</h1>
+        <h1>Some Basic C Programs</h1>
         <p>Select a program to run:</p>
       </div>
 
