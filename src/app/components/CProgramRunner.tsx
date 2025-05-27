@@ -147,7 +147,7 @@ const CProgramRunner: React.FC<CProgramRunnerProps> = ({
   };
 
   return (
-    <div style={{ border: '1px solid lightgray', padding: '0.5em', margin: '1em 0', backgroundColor: '#28282B', color: 'white' }}>
+    <div style={{ border: '1px solid lightgray', padding: '0.5em', margin: '1em 0', backgroundColor: '#28282B', color: 'white', borderRadius: '4px' }}>
       
       {!isRunning && isLoaded && (
         <button 
@@ -182,7 +182,7 @@ const CProgramRunner: React.FC<CProgramRunnerProps> = ({
       <h5>Output:</h5>
       <pre 
         ref={outputContainerRef} 
-        style={{ backgroundColor: 'black', border: '1px solid #333', padding: '0.5em', minHeight: '100px', maxHeight: '300px', overflowY: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
+        style={{ backgroundColor: 'black', border: '1px solid #333', padding: '0.5em', minHeight: '300px', maxHeight: '600px', overflowY: 'auto', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
       >
         {output.join('\n')}
       </pre>

@@ -1,0 +1,9 @@
+These are commands that were used by emcc
+Homework 1:
+emcc "C programs/Homework 1/acosta-pliego_steven_jukebox.c" -o "public/jukebox.js" -sMODULARIZE=1 -sALLOW_MEMORY_GROWTH -sEXPORTED_RUNTIME_METHODS="['ccall', 'UTF8ToString']" -sEXPORTED_FUNCTIONS="['_init_jukebox', '_process_jukebox_input', '_malloc', '_free']" --preload-file "C programs/Homework 1/song1.txt@song1.txt" --preload-file "C programs/Homework 1/song2.txt@song2.txt" --preload-file "C programs/Homework 1/song3.txt@song3.txt" --preload-file "C programs/Homework 1/song4.txt@song4.txt" --preload-file "C programs/Homework 1/song5.txt@song5.txt" -sASYNCIFY
+
+Homework 2:
+emcc "C programs/Homework 2/acosta-pliego_steven_minigame.c" -o "public/minigame.js" -sEXPORTED_FUNCTIONS="['_init_minigame', '_process_minigame_guess', '_malloc', '_free']" -sEXPORTED_RUNTIME_METHODS="['ccall', 'UTF8ToString']" -sALLOW_MEMORY_GROWTH -sMODULARIZE=1
+
+Homework 3:
+emcc "C programs/Homework 3/acosta-pliego_steven_inventory.c" -o "public/inventory.js" -sMODULARIZE=1 -sALLOW_MEMORY_GROWTH -sEXPORTED_RUNTIME_METHODS="['ccall', 'UTF8ToString']" -sEXPORTED_FUNCTIONS="['_init_inventory', '_process_inventory_input', '_malloc', '_free']"
