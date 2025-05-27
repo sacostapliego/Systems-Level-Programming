@@ -1,3 +1,9 @@
+var Module = (() => {
+  var _scriptName = typeof document != 'undefined' ? document.currentScript?.src : undefined;
+  return (
+async function(moduleArg = {}) {
+  var moduleRtn;
+
 // include: shell.js
 // The Module object: Our interface to the outside world. We import
 // and export values on it. There are various ways Module can be used:
@@ -12,7 +18,14 @@
 // after the generated code, you will need to define   var Module = {};
 // before the code. Then that object will be used in the code, and you
 // can continue to use Module afterwards as well.
-var Module = typeof Module != 'undefined' ? Module : {};
+var Module = moduleArg;
+
+// Set up the promise that indicates the Module is initialized
+var readyPromiseResolve, readyPromiseReject;
+var readyPromise = new Promise((resolve, reject) => {
+  readyPromiseResolve = resolve;
+  readyPromiseReject = reject;
+});
 
 // Determine the runtime environment we are in. You can customize this by
 // setting the ENVIRONMENT setting at compile time (see settings.js).
@@ -31,6 +44,201 @@ if (ENVIRONMENT_IS_NODE) {
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
+// include: C:\Users\mrboo\AppData\Local\Temp\tmpev8gumn1.js
+
+  Module['expectedDataFileDownloads'] ??= 0;
+  Module['expectedDataFileDownloads']++;
+  (() => {
+    // Do not attempt to redownload the virtual filesystem data when in a pthread or a Wasm Worker context.
+    var isPthread = typeof ENVIRONMENT_IS_PTHREAD != 'undefined' && ENVIRONMENT_IS_PTHREAD;
+    var isWasmWorker = typeof ENVIRONMENT_IS_WASM_WORKER != 'undefined' && ENVIRONMENT_IS_WASM_WORKER;
+    if (isPthread || isWasmWorker) return;
+    var isNode = typeof process === 'object' && typeof process.versions === 'object' && typeof process.versions.node === 'string';
+    function loadPackage(metadata) {
+
+      var PACKAGE_PATH = '';
+      if (typeof window === 'object') {
+        PACKAGE_PATH = window['encodeURIComponent'](window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/')) + '/');
+      } else if (typeof process === 'undefined' && typeof location !== 'undefined') {
+        // web worker
+        PACKAGE_PATH = encodeURIComponent(location.pathname.substring(0, location.pathname.lastIndexOf('/')) + '/');
+      }
+      var PACKAGE_NAME = 'public/jukebox.data';
+      var REMOTE_PACKAGE_BASE = 'jukebox.data';
+      var REMOTE_PACKAGE_NAME = Module['locateFile'] ? Module['locateFile'](REMOTE_PACKAGE_BASE, '') : REMOTE_PACKAGE_BASE;
+var REMOTE_PACKAGE_SIZE = metadata['remote_package_size'];
+
+      function fetchRemotePackage(packageName, packageSize, callback, errback) {
+        if (isNode) {
+          require('fs').readFile(packageName, (err, contents) => {
+            if (err) {
+              errback(err);
+            } else {
+              callback(contents.buffer);
+            }
+          });
+          return;
+        }
+        Module['dataFileDownloads'] ??= {};
+        fetch(packageName)
+          .catch((cause) => Promise.reject(new Error(`Network Error: ${packageName}`, {cause}))) // If fetch fails, rewrite the error to include the failing URL & the cause.
+          .then((response) => {
+            if (!response.ok) {
+              return Promise.reject(new Error(`${response.status}: ${response.url}`));
+            }
+
+            if (!response.body && response.arrayBuffer) { // If we're using the polyfill, readers won't be available...
+              return response.arrayBuffer().then(callback);
+            }
+
+            const reader = response.body.getReader();
+            const iterate = () => reader.read().then(handleChunk).catch((cause) => {
+              return Promise.reject(new Error(`Unexpected error while handling : ${response.url} ${cause}`, {cause}));
+            });
+
+            const chunks = [];
+            const headers = response.headers;
+            const total = Number(headers.get('Content-Length') ?? packageSize);
+            let loaded = 0;
+
+            const handleChunk = ({done, value}) => {
+              if (!done) {
+                chunks.push(value);
+                loaded += value.length;
+                Module['dataFileDownloads'][packageName] = {loaded, total};
+
+                let totalLoaded = 0;
+                let totalSize = 0;
+
+                for (const download of Object.values(Module['dataFileDownloads'])) {
+                  totalLoaded += download.loaded;
+                  totalSize += download.total;
+                }
+
+                Module['setStatus']?.(`Downloading data... (${totalLoaded}/${totalSize})`);
+                return iterate();
+              } else {
+                const packageData = new Uint8Array(chunks.map((c) => c.length).reduce((a, b) => a + b, 0));
+                let offset = 0;
+                for (const chunk of chunks) {
+                  packageData.set(chunk, offset);
+                  offset += chunk.length;
+                }
+                callback(packageData.buffer);
+              }
+            };
+
+            Module['setStatus']?.('Downloading data...');
+            return iterate();
+          });
+      };
+
+      function handleError(error) {
+        console.error('package error:', error);
+      };
+
+      var fetchedCallback = null;
+      var fetched = Module['getPreloadedPackage'] ? Module['getPreloadedPackage'](REMOTE_PACKAGE_NAME, REMOTE_PACKAGE_SIZE) : null;
+
+      if (!fetched) fetchRemotePackage(REMOTE_PACKAGE_NAME, REMOTE_PACKAGE_SIZE, (data) => {
+        if (fetchedCallback) {
+          fetchedCallback(data);
+          fetchedCallback = null;
+        } else {
+          fetched = data;
+        }
+      }, handleError);
+
+    function runWithFS(Module) {
+
+      function assert(check, msg) {
+        if (!check) throw msg + new Error().stack;
+      }
+
+      /** @constructor */
+      function DataRequest(start, end, audio) {
+        this.start = start;
+        this.end = end;
+        this.audio = audio;
+      }
+      DataRequest.prototype = {
+        requests: {},
+        open: function(mode, name) {
+          this.name = name;
+          this.requests[name] = this;
+          Module['addRunDependency'](`fp ${this.name}`);
+        },
+        send: function() {},
+        onload: function() {
+          var byteArray = this.byteArray.subarray(this.start, this.end);
+          this.finish(byteArray);
+        },
+        finish: function(byteArray) {
+          var that = this;
+          // canOwn this data in the filesystem, it is a slide into the heap that will never change
+          Module['FS_createDataFile'](this.name, null, byteArray, true, true, true);
+          Module['removeRunDependency'](`fp ${that.name}`);
+          this.requests[this.name] = null;
+        }
+      };
+
+      var files = metadata['files'];
+      for (var i = 0; i < files.length; ++i) {
+        new DataRequest(files[i]['start'], files[i]['end'], files[i]['audio'] || 0).open('GET', files[i]['filename']);
+      }
+
+      function processPackageData(arrayBuffer) {
+        assert(arrayBuffer, 'Loading data file failed.');
+        assert(arrayBuffer.constructor.name === ArrayBuffer.name, 'bad input to processPackageData');
+        var byteArray = new Uint8Array(arrayBuffer);
+        var curr;
+        // Reuse the bytearray from the XHR as the source for file reads.
+          DataRequest.prototype.byteArray = byteArray;
+          var files = metadata['files'];
+          for (var i = 0; i < files.length; ++i) {
+            DataRequest.prototype.requests[files[i].filename].onload();
+          }          Module['removeRunDependency']('datafile_public/jukebox.data');
+
+      };
+      Module['addRunDependency']('datafile_public/jukebox.data');
+
+      Module['preloadResults'] ??= {};
+
+      Module['preloadResults'][PACKAGE_NAME] = {fromCache: false};
+      if (fetched) {
+        processPackageData(fetched);
+        fetched = null;
+      } else {
+        fetchedCallback = processPackageData;
+      }
+
+    }
+    if (Module['calledRun']) {
+      runWithFS(Module);
+    } else {
+      (Module['preRun'] ??= []).push(runWithFS); // FS is not initialized yet, wait for it
+    }
+
+    }
+    loadPackage({"files": [{"filename": "/song1.txt", "start": 0, "end": 1280}, {"filename": "/song2.txt", "start": 1280, "end": 3186}, {"filename": "/song3.txt", "start": 3186, "end": 4438}, {"filename": "/song4.txt", "start": 4438, "end": 5635}, {"filename": "/song5.txt", "start": 5635, "end": 7074}], "remote_package_size": 7074});
+
+  })();
+
+// end include: C:\Users\mrboo\AppData\Local\Temp\tmpev8gumn1.js
+// include: C:\Users\mrboo\AppData\Local\Temp\tmpsztsqlko.js
+
+    // All the pre-js content up to here must remain later on, we need to run
+    // it.
+    if ((typeof ENVIRONMENT_IS_WASM_WORKER != 'undefined' && ENVIRONMENT_IS_WASM_WORKER) || (typeof ENVIRONMENT_IS_PTHREAD != 'undefined' && ENVIRONMENT_IS_PTHREAD) || (typeof ENVIRONMENT_IS_AUDIO_WORKLET != 'undefined' && ENVIRONMENT_IS_AUDIO_WORKLET)) Module['preRun'] = [];
+    var necessaryPreJSTasks = Module['preRun'].slice();
+  // end include: C:\Users\mrboo\AppData\Local\Temp\tmpsztsqlko.js
+// include: C:\Users\mrboo\AppData\Local\Temp\tmpbrzom20g.js
+
+    if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
+    necessaryPreJSTasks.forEach((task) => {
+      if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
+    });
+  // end include: C:\Users\mrboo\AppData\Local\Temp\tmpbrzom20g.js
 
 
 var arguments_ = [];
@@ -38,10 +246,6 @@ var thisProgram = './this.program';
 var quit_ = (status, toThrow) => {
   throw toThrow;
 };
-
-// In MODULARIZE mode _scriptName needs to be captured already at the very top of the page immediately when the page is parsed, so it is generated there
-// before the page load. In non-MODULARIZE modes generate it here.
-var _scriptName = typeof document != 'undefined' ? document.currentScript?.src : undefined;
 
 if (typeof __filename != 'undefined') { // Node
   _scriptName = __filename;
@@ -103,11 +307,6 @@ readAsync = async (filename, binary = true) => {
   }
 
   arguments_ = process.argv.slice(2);
-
-  // MODULARIZE will export the module in the proper place outside, we don't need to export here
-  if (typeof module != 'undefined') {
-    module['exports'] = Module;
-  }
 
   quit_ = (status, toThrow) => {
     process.exitCode = status;
@@ -248,13 +447,6 @@ function assert(condition, text) {
 
 // We used to include malloc/free by default in the past. Show a helpful error in
 // builds with assertions.
-function _malloc() {
-  abort('malloc() called but not included in the build - add `_malloc` to EXPORTED_FUNCTIONS');
-}
-function _free() {
-  // Show a helpful error since we used to include free by default in the past.
-  abort('free() called but not included in the build - add `_free` to EXPORTED_FUNCTIONS');
-}
 
 // Memory management
 
@@ -387,15 +579,13 @@ function isExportedByForceFilesystem(name) {
  * their build, or no symbols that no longer exist.
  */
 function hookGlobalSymbolAccess(sym, func) {
-  if (typeof globalThis != 'undefined' && !Object.getOwnPropertyDescriptor(globalThis, sym)) {
-    Object.defineProperty(globalThis, sym, {
-      configurable: true,
-      get() {
-        func();
-        return undefined;
-      }
-    });
-  }
+  // In MODULARIZE mode the generated code runs inside a function scope and not
+  // the global scope, and JavaScript does not provide access to function scopes
+  // so we cannot dynamically modify the scrope using `defineProperty` in this
+  // case.
+  //
+  // In this mode we simply ignore requests for `hookGlobalSymbolAccess`. Since
+  // this is a debug-only feature, skipping it is not major issue.
 }
 
 function missingGlobal(sym, msg) {
@@ -498,11 +688,6 @@ TTY.init();
   // Begin ATPOSTCTORS hooks
   FS.ignorePermissions = false;
   // End ATPOSTCTORS hooks
-}
-
-function preMain() {
-  checkStackCookie();
-  // No ATMAINS hooks
 }
 
 function postRun() {
@@ -611,6 +796,10 @@ function abort(what) {
 
   ABORT = true;
 
+  if (what.indexOf('RuntimeError: unreachable') >= 0) {
+    what += '. "unreachable" may be due to ASYNCIFY_STACK_SIZE not being large enough (try increasing it)';
+  }
+
   // Use a wasm runtime error, because a JS error might be seen as a foreign
   // exception, which means we'd run destructors on it. We need the error to
   // simply make the program stop.
@@ -627,6 +816,7 @@ function abort(what) {
   /** @suppress {checkTypes} */
   var e = new WebAssembly.RuntimeError(what);
 
+  readyPromiseReject(e);
   // Throw the error whether or not MODULARIZE is set because abort is used
   // in code paths apart from instantiation where an exception is expected
   // to be thrown when abort is called.
@@ -720,6 +910,10 @@ async function instantiateAsync(binary, binaryFile, imports) {
 }
 
 function getWasmImports() {
+  // instrumenting imports is used in asyncify in two ways: to add assertions
+  // that check for proper import use, and for ASYNCIFY=2 we use them to set up
+  // the Promise API on the import side.
+  Asyncify.instrumentWasmImports(wasmImports);
   // prepare imports
   return {
     'env': wasmImports,
@@ -736,6 +930,8 @@ async function createWasm() {
   /** @param {WebAssembly.Module=} module*/
   function receiveInstance(instance, module) {
     wasmExports = instance.exports;
+
+    wasmExports = Asyncify.instrumentWasmExports(wasmExports);
 
     
 
@@ -787,9 +983,15 @@ async function createWasm() {
   }
 
   wasmBinaryFile ??= findWasmBinary();
+  try {
     var result = await instantiateAsync(wasmBinary, wasmBinaryFile, info);
     var exports = receiveInstantiationResult(result);
     return exports;
+  } catch (e) {
+    // If instantiation fails, reject the module ready promise.
+    readyPromiseReject(e);
+    return Promise.reject(e);
+  }
 }
 
 // end include: preamble.js
@@ -817,6 +1019,31 @@ async function createWasm() {
   var onPreRuns = [];
   var addOnPreRun = (cb) => onPreRuns.push(cb);
 
+
+  var dynCallLegacy = (sig, ptr, args) => {
+      sig = sig.replace(/p/g, 'i')
+      assert(('dynCall_' + sig) in Module, `bad function pointer type - dynCall function not found for sig '${sig}'`);
+      if (args?.length) {
+        // j (64-bit integer) is fine, and is implemented as a BigInt. Without
+        // legalization, the number of parameters should match (j is not expanded
+        // into two i's).
+        assert(args.length === sig.length - 1);
+      } else {
+        assert(sig.length == 1);
+      }
+      var f = Module['dynCall_' + sig];
+      return f(ptr, ...args);
+    };
+  var dynCall = (sig, ptr, args = [], promising = false) => {
+      assert(!promising, 'async dynCall is not supported in this mode')
+      var rtn = dynCallLegacy(sig, ptr, args);
+  
+      function convert(rtn) {
+        return rtn;
+      }
+  
+      return convert(rtn);
+    };
 
   
     /**
@@ -1572,6 +1799,13 @@ async function createWasm() {
   write(stream, buffer, offset, length, position, canOwn) {
           // The data buffer should be a typed array view
           assert(!(buffer instanceof ArrayBuffer));
+          // If the buffer is located in main memory (HEAP), and if
+          // memory can grow, we can't hold on to references of the
+          // memory buffer, as they may get invalidated. That means we
+          // need to do copy its contents.
+          if (buffer.buffer === HEAP8.buffer) {
+            canOwn = false;
+          }
   
           if (!length) return 0;
           var node = stream.node;
@@ -1666,6 +1900,7 @@ async function createWasm() {
       assert(arrayBuffer, `Loading data file "${url}" failed (no arrayBuffer).`);
       return new Uint8Array(arrayBuffer);
     };
+  asyncLoad.isAsync = true;
   
   
   var FS_createDataFile = (...args) => FS.createDataFile(...args);
@@ -3645,51 +3880,166 @@ async function createWasm() {
   var __abort_js = () =>
       abort('native code called abort()');
 
-  var _emscripten_get_now = () => performance.now();
+  var getHeapMax = () =>
+      // Stay one Wasm page short of 4GB: while e.g. Chrome is able to allocate
+      // full 4GB Wasm memories, the size will wrap back to 0 bytes in Wasm side
+      // for any code that deals with heap sizes, which would require special
+      // casing all heap size related code to treat 0 specially.
+      2147483648;
   
-  var _emscripten_date_now = () => Date.now();
+  var alignMemory = (size, alignment) => {
+      assert(alignment, "alignment argument is required");
+      return Math.ceil(size / alignment) * alignment;
+    };
   
-  var nowIsMonotonic = 1;
-  
-  var checkWasiClock = (clock_id) => clock_id >= 0 && clock_id <= 3;
-  
-  var INT53_MAX = 9007199254740992;
-  
-  var INT53_MIN = -9007199254740992;
-  var bigintToI53Checked = (num) => (num < INT53_MIN || num > INT53_MAX) ? NaN : Number(num);
-  function _clock_time_get(clk_id, ignored_precision, ptime) {
-    ignored_precision = bigintToI53Checked(ignored_precision);
-  
-  
-      if (!checkWasiClock(clk_id)) {
-        return 28;
+  var growMemory = (size) => {
+      var b = wasmMemory.buffer;
+      var pages = ((size - b.byteLength + 65535) / 65536) | 0;
+      try {
+        // round size grow request up to wasm page size (fixed 64KB per spec)
+        wasmMemory.grow(pages); // .grow() takes a delta compared to the previous size
+        updateMemoryViews();
+        return 1 /*success*/;
+      } catch(e) {
+        err(`growMemory: Attempted to grow heap from ${b.byteLength} bytes to ${size} bytes, but got error: ${e}`);
       }
-      var now;
-      // all wasi clocks but realtime are monotonic
-      if (clk_id === 0) {
-        now = _emscripten_date_now();
-      } else if (nowIsMonotonic) {
-        now = _emscripten_get_now();
-      } else {
-        return 52;
-      }
-      // "now" is in ms, and wasi times are in ns.
-      var nsec = Math.round(now * 1000 * 1000);
-      HEAP64[((ptime)>>3)] = BigInt(nsec);
-      return 0;
-    ;
-  }
-
-
-  var abortOnCannotGrowMemory = (requestedSize) => {
-      abort(`Cannot enlarge memory arrays to size ${requestedSize} bytes (OOM). Either (1) compile with -sINITIAL_MEMORY=X with X higher than the current value ${HEAP8.length}, (2) compile with -sALLOW_MEMORY_GROWTH which allows increasing the size at runtime, or (3) if you want malloc to return NULL (0) instead of this abort, compile with -sABORTING_MALLOC=0`);
+      // implicit 0 return to save code size (caller will cast "undefined" into 0
+      // anyhow)
     };
   var _emscripten_resize_heap = (requestedSize) => {
       var oldSize = HEAPU8.length;
       // With CAN_ADDRESS_2GB or MEMORY64, pointers are already unsigned.
       requestedSize >>>= 0;
-      abortOnCannotGrowMemory(requestedSize);
+      // With multithreaded builds, races can happen (another thread might increase the size
+      // in between), so return a failure, and let the caller retry.
+      assert(requestedSize > oldSize);
+  
+      // Memory resize rules:
+      // 1.  Always increase heap size to at least the requested size, rounded up
+      //     to next page multiple.
+      // 2a. If MEMORY_GROWTH_LINEAR_STEP == -1, excessively resize the heap
+      //     geometrically: increase the heap size according to
+      //     MEMORY_GROWTH_GEOMETRIC_STEP factor (default +20%), At most
+      //     overreserve by MEMORY_GROWTH_GEOMETRIC_CAP bytes (default 96MB).
+      // 2b. If MEMORY_GROWTH_LINEAR_STEP != -1, excessively resize the heap
+      //     linearly: increase the heap size by at least
+      //     MEMORY_GROWTH_LINEAR_STEP bytes.
+      // 3.  Max size for the heap is capped at 2048MB-WASM_PAGE_SIZE, or by
+      //     MAXIMUM_MEMORY, or by ASAN limit, depending on which is smallest
+      // 4.  If we were unable to allocate as much memory, it may be due to
+      //     over-eager decision to excessively reserve due to (3) above.
+      //     Hence if an allocation fails, cut down on the amount of excess
+      //     growth, in an attempt to succeed to perform a smaller allocation.
+  
+      // A limit is set for how much we can grow. We should not exceed that
+      // (the wasm binary specifies it, so if we tried, we'd fail anyhow).
+      var maxHeapSize = getHeapMax();
+      if (requestedSize > maxHeapSize) {
+        err(`Cannot enlarge memory, requested ${requestedSize} bytes, but the limit is ${maxHeapSize} bytes!`);
+        return false;
+      }
+  
+      // Loop through potential heap size increases. If we attempt a too eager
+      // reservation that fails, cut down on the attempted size and reserve a
+      // smaller bump instead. (max 3 times, chosen somewhat arbitrarily)
+      for (var cutDown = 1; cutDown <= 4; cutDown *= 2) {
+        var overGrownHeapSize = oldSize * (1 + 0.2 / cutDown); // ensure geometric growth
+        // but limit overreserving (default to capping at +96MB overgrowth at most)
+        overGrownHeapSize = Math.min(overGrownHeapSize, requestedSize + 100663296 );
+  
+        var newSize = Math.min(maxHeapSize, alignMemory(Math.max(requestedSize, overGrownHeapSize), 65536));
+  
+        var replacement = growMemory(newSize);
+        if (replacement) {
+  
+          return true;
+        }
+      }
+      err(`Failed to grow the heap from ${oldSize} bytes to ${newSize} bytes, not enough memory!`);
+      return false;
     };
+
+  var handleException = (e) => {
+      // Certain exception types we do not treat as errors since they are used for
+      // internal control flow.
+      // 1. ExitStatus, which is thrown by exit()
+      // 2. "unwind", which is thrown by emscripten_unwind_to_js_event_loop() and others
+      //    that wish to return to JS event loop.
+      if (e instanceof ExitStatus || e == 'unwind') {
+        return EXITSTATUS;
+      }
+      checkStackCookie();
+      if (e instanceof WebAssembly.RuntimeError) {
+        if (_emscripten_stack_get_current() <= 0) {
+          err('Stack overflow detected.  You can try increasing -sSTACK_SIZE (currently set to 65536)');
+        }
+      }
+      quit_(1, e);
+    };
+  
+  
+  var runtimeKeepaliveCounter = 0;
+  var keepRuntimeAlive = () => noExitRuntime || runtimeKeepaliveCounter > 0;
+  var _proc_exit = (code) => {
+      EXITSTATUS = code;
+      if (!keepRuntimeAlive()) {
+        Module['onExit']?.(code);
+        ABORT = true;
+      }
+      quit_(code, new ExitStatus(code));
+    };
+  
+  
+  /** @suppress {duplicate } */
+  /** @param {boolean|number=} implicit */
+  var exitJS = (status, implicit) => {
+      EXITSTATUS = status;
+  
+      checkUnflushedContent();
+  
+      // if exit() was called explicitly, warn the user if the runtime isn't actually being shut down
+      if (keepRuntimeAlive() && !implicit) {
+        var msg = `program exited (with status: ${status}), but keepRuntimeAlive() is set (counter=${runtimeKeepaliveCounter}) due to an async operation, so halting execution but not exiting the runtime or preventing further async execution (you can use emscripten_force_exit, if you want to force a true shutdown)`;
+        readyPromiseReject(msg);
+        err(msg);
+      }
+  
+      _proc_exit(status);
+    };
+  var _exit = exitJS;
+  
+  
+  var maybeExit = () => {
+      if (!keepRuntimeAlive()) {
+        try {
+          _exit(EXITSTATUS);
+        } catch (e) {
+          handleException(e);
+        }
+      }
+    };
+  var callUserCallback = (func) => {
+      if (ABORT) {
+        err('user callback triggered after runtime exited or application aborted.  Ignoring.');
+        return;
+      }
+      try {
+        func();
+        maybeExit();
+      } catch (e) {
+        handleException(e);
+      }
+    };
+  /** @param {number=} timeout */
+  var safeSetTimeout = (func, timeout) => {
+      
+      return setTimeout(() => {
+        
+        callUserCallback(func);
+      }, timeout);
+    };
+  var _emscripten_sleep = (ms) => Asyncify.handleSleep((wakeUp) => safeSetTimeout(wakeUp, ms));
+  _emscripten_sleep.isAsync = true;
 
   function _fd_close(fd) {
   try {
@@ -3735,6 +4085,10 @@ async function createWasm() {
   }
 
   
+  var INT53_MAX = 9007199254740992;
+  
+  var INT53_MIN = -9007199254740992;
+  var bigintToI53Checked = (num) => (num < INT53_MIN || num > INT53_MAX) ? NaN : Number(num);
   function _fd_seek(fd, offset, whence, newOffset) {
     offset = bigintToI53Checked(offset);
   
@@ -3788,51 +4142,413 @@ async function createWasm() {
   }
   }
 
-  
-  var runtimeKeepaliveCounter = 0;
-  var keepRuntimeAlive = () => noExitRuntime || runtimeKeepaliveCounter > 0;
-  var _proc_exit = (code) => {
-      EXITSTATUS = code;
-      if (!keepRuntimeAlive()) {
-        Module['onExit']?.(code);
-        ABORT = true;
-      }
-      quit_(code, new ExitStatus(code));
-    };
-  
-  
-  /** @param {boolean|number=} implicit */
-  var exitJS = (status, implicit) => {
-      EXITSTATUS = status;
-  
-      checkUnflushedContent();
-  
-      // if exit() was called explicitly, warn the user if the runtime isn't actually being shut down
-      if (keepRuntimeAlive() && !implicit) {
-        var msg = `program exited (with status: ${status}), but keepRuntimeAlive() is set (counter=${runtimeKeepaliveCounter}) due to an async operation, so halting execution but not exiting the runtime or preventing further async execution (you can use emscripten_force_exit, if you want to force a true shutdown)`;
-        err(msg);
-      }
-  
-      _proc_exit(status);
-    };
 
-  var handleException = (e) => {
-      // Certain exception types we do not treat as errors since they are used for
-      // internal control flow.
-      // 1. ExitStatus, which is thrown by exit()
-      // 2. "unwind", which is thrown by emscripten_unwind_to_js_event_loop() and others
-      //    that wish to return to JS event loop.
-      if (e instanceof ExitStatus || e == 'unwind') {
-        return EXITSTATUS;
+  var runAndAbortIfError = (func) => {
+      try {
+        return func();
+      } catch (e) {
+        abort(e);
       }
-      checkStackCookie();
-      if (e instanceof WebAssembly.RuntimeError) {
-        if (_emscripten_stack_get_current() <= 0) {
-          err('Stack overflow detected.  You can try increasing -sSTACK_SIZE (currently set to 65536)');
+    };
+  
+  
+  var sigToWasmTypes = (sig) => {
+      var typeNames = {
+        'i': 'i32',
+        'j': 'i64',
+        'f': 'f32',
+        'd': 'f64',
+        'e': 'externref',
+        'p': 'i32',
+      };
+      var type = {
+        parameters: [],
+        results: sig[0] == 'v' ? [] : [typeNames[sig[0]]]
+      };
+      for (var i = 1; i < sig.length; ++i) {
+        assert(sig[i] in typeNames, 'invalid signature char: ' + sig[i]);
+        type.parameters.push(typeNames[sig[i]]);
+      }
+      return type;
+    };
+  
+  var runtimeKeepalivePush = () => {
+      runtimeKeepaliveCounter += 1;
+    };
+  
+  var runtimeKeepalivePop = () => {
+      assert(runtimeKeepaliveCounter > 0);
+      runtimeKeepaliveCounter -= 1;
+    };
+  
+  
+  var Asyncify = {
+  instrumentWasmImports(imports) {
+        var importPattern = /^(invoke_.*|__asyncjs__.*)$/;
+  
+        for (let [x, original] of Object.entries(imports)) {
+          if (typeof original == 'function') {
+            let isAsyncifyImport = original.isAsync || importPattern.test(x);
+            imports[x] = (...args) => {
+              var originalAsyncifyState = Asyncify.state;
+              try {
+                return original(...args);
+              } finally {
+                // Only asyncify-declared imports are allowed to change the
+                // state.
+                // Changing the state from normal to disabled is allowed (in any
+                // function) as that is what shutdown does (and we don't have an
+                // explicit list of shutdown imports).
+                var changedToDisabled =
+                      originalAsyncifyState === Asyncify.State.Normal &&
+                      Asyncify.state        === Asyncify.State.Disabled;
+                // invoke_* functions are allowed to change the state if we do
+                // not ignore indirect calls.
+                var ignoredInvoke = x.startsWith('invoke_') &&
+                                    true;
+                if (Asyncify.state !== originalAsyncifyState &&
+                    !isAsyncifyImport &&
+                    !changedToDisabled &&
+                    !ignoredInvoke) {
+                  throw new Error(`import ${x} was not in ASYNCIFY_IMPORTS, but changed the state`);
+                }
+              }
+            };
+          }
+        }
+      },
+  instrumentWasmExports(exports) {
+        var ret = {};
+        for (let [x, original] of Object.entries(exports)) {
+          if (typeof original == 'function') {
+            ret[x] = (...args) => {
+              Asyncify.exportCallStack.push(x);
+              try {
+                return original(...args);
+              } finally {
+                if (!ABORT) {
+                  var y = Asyncify.exportCallStack.pop();
+                  assert(y === x);
+                  Asyncify.maybeStopUnwind();
+                }
+              }
+            };
+          } else {
+            ret[x] = original;
+          }
+        }
+        return ret;
+      },
+  State:{
+  Normal:0,
+  Unwinding:1,
+  Rewinding:2,
+  Disabled:3,
+  },
+  state:0,
+  StackSize:4096,
+  currData:null,
+  handleSleepReturnValue:0,
+  exportCallStack:[],
+  callStackNameToId:{
+  },
+  callStackIdToName:{
+  },
+  callStackId:0,
+  asyncPromiseHandlers:null,
+  sleepCallbacks:[],
+  getCallStackId(funcName) {
+        var id = Asyncify.callStackNameToId[funcName];
+        if (id === undefined) {
+          id = Asyncify.callStackId++;
+          Asyncify.callStackNameToId[funcName] = id;
+          Asyncify.callStackIdToName[id] = funcName;
+        }
+        return id;
+      },
+  maybeStopUnwind() {
+        if (Asyncify.currData &&
+            Asyncify.state === Asyncify.State.Unwinding &&
+            Asyncify.exportCallStack.length === 0) {
+          // We just finished unwinding.
+          // Be sure to set the state before calling any other functions to avoid
+          // possible infinite recursion here (For example in debug pthread builds
+          // the dbg() function itself can call back into WebAssembly to get the
+          // current pthread_self() pointer).
+          Asyncify.state = Asyncify.State.Normal;
+          
+          // Keep the runtime alive so that a re-wind can be done later.
+          runAndAbortIfError(_asyncify_stop_unwind);
+          if (typeof Fibers != 'undefined') {
+            Fibers.trampoline();
+          }
+        }
+      },
+  whenDone() {
+        assert(Asyncify.currData, 'Tried to wait for an async operation when none is in progress.');
+        assert(!Asyncify.asyncPromiseHandlers, 'Cannot have multiple async operations in flight at once');
+        return new Promise((resolve, reject) => {
+          Asyncify.asyncPromiseHandlers = { resolve, reject };
+        });
+      },
+  allocateData() {
+        // An asyncify data structure has three fields:
+        //  0  current stack pos
+        //  4  max stack pos
+        //  8  id of function at bottom of the call stack (callStackIdToName[id] == name of js function)
+        //
+        // The Asyncify ABI only interprets the first two fields, the rest is for the runtime.
+        // We also embed a stack in the same memory region here, right next to the structure.
+        // This struct is also defined as asyncify_data_t in emscripten/fiber.h
+        var ptr = _malloc(12 + Asyncify.StackSize);
+        Asyncify.setDataHeader(ptr, ptr + 12, Asyncify.StackSize);
+        Asyncify.setDataRewindFunc(ptr);
+        return ptr;
+      },
+  setDataHeader(ptr, stack, stackSize) {
+        HEAPU32[((ptr)>>2)] = stack;
+        HEAPU32[(((ptr)+(4))>>2)] = stack + stackSize;
+      },
+  setDataRewindFunc(ptr) {
+        var bottomOfCallStack = Asyncify.exportCallStack[0];
+        var rewindId = Asyncify.getCallStackId(bottomOfCallStack);
+        HEAP32[(((ptr)+(8))>>2)] = rewindId;
+      },
+  getDataRewindFuncName(ptr) {
+        var id = HEAP32[(((ptr)+(8))>>2)];
+        var name = Asyncify.callStackIdToName[id];
+        return name;
+      },
+  getDataRewindFunc(name) {
+        var func = wasmExports[name];
+        return func;
+      },
+  doRewind(ptr) {
+        var name = Asyncify.getDataRewindFuncName(ptr);
+        var func = Asyncify.getDataRewindFunc(name);
+        // Once we have rewound and the stack we no longer need to artificially
+        // keep the runtime alive.
+        
+        return func();
+      },
+  handleSleep(startAsync) {
+        assert(Asyncify.state !== Asyncify.State.Disabled, 'Asyncify cannot be done during or after the runtime exits');
+        if (ABORT) return;
+        if (Asyncify.state === Asyncify.State.Normal) {
+          // Prepare to sleep. Call startAsync, and see what happens:
+          // if the code decided to call our callback synchronously,
+          // then no async operation was in fact begun, and we don't
+          // need to do anything.
+          var reachedCallback = false;
+          var reachedAfterCallback = false;
+          startAsync((handleSleepReturnValue = 0) => {
+            assert(!handleSleepReturnValue || typeof handleSleepReturnValue == 'number' || typeof handleSleepReturnValue == 'boolean'); // old emterpretify API supported other stuff
+            if (ABORT) return;
+            Asyncify.handleSleepReturnValue = handleSleepReturnValue;
+            reachedCallback = true;
+            if (!reachedAfterCallback) {
+              // We are happening synchronously, so no need for async.
+              return;
+            }
+            // This async operation did not happen synchronously, so we did
+            // unwind. In that case there can be no compiled code on the stack,
+            // as it might break later operations (we can rewind ok now, but if
+            // we unwind again, we would unwind through the extra compiled code
+            // too).
+            assert(!Asyncify.exportCallStack.length, 'Waking up (starting to rewind) must be done from JS, without compiled code on the stack.');
+            Asyncify.state = Asyncify.State.Rewinding;
+            runAndAbortIfError(() => _asyncify_start_rewind(Asyncify.currData));
+            if (typeof MainLoop != 'undefined' && MainLoop.func) {
+              MainLoop.resume();
+            }
+            var asyncWasmReturnValue, isError = false;
+            try {
+              asyncWasmReturnValue = Asyncify.doRewind(Asyncify.currData);
+            } catch (err) {
+              asyncWasmReturnValue = err;
+              isError = true;
+            }
+            // Track whether the return value was handled by any promise handlers.
+            var handled = false;
+            if (!Asyncify.currData) {
+              // All asynchronous execution has finished.
+              // `asyncWasmReturnValue` now contains the final
+              // return value of the exported async WASM function.
+              //
+              // Note: `asyncWasmReturnValue` is distinct from
+              // `Asyncify.handleSleepReturnValue`.
+              // `Asyncify.handleSleepReturnValue` contains the return
+              // value of the last C function to have executed
+              // `Asyncify.handleSleep()`, where as `asyncWasmReturnValue`
+              // contains the return value of the exported WASM function
+              // that may have called C functions that
+              // call `Asyncify.handleSleep()`.
+              var asyncPromiseHandlers = Asyncify.asyncPromiseHandlers;
+              if (asyncPromiseHandlers) {
+                Asyncify.asyncPromiseHandlers = null;
+                (isError ? asyncPromiseHandlers.reject : asyncPromiseHandlers.resolve)(asyncWasmReturnValue);
+                handled = true;
+              }
+            }
+            if (isError && !handled) {
+              // If there was an error and it was not handled by now, we have no choice but to
+              // rethrow that error into the global scope where it can be caught only by
+              // `onerror` or `onunhandledpromiserejection`.
+              throw asyncWasmReturnValue;
+            }
+          });
+          reachedAfterCallback = true;
+          if (!reachedCallback) {
+            // A true async operation was begun; start a sleep.
+            Asyncify.state = Asyncify.State.Unwinding;
+            // TODO: reuse, don't alloc/free every sleep
+            Asyncify.currData = Asyncify.allocateData();
+            if (typeof MainLoop != 'undefined' && MainLoop.func) {
+              MainLoop.pause();
+            }
+            runAndAbortIfError(() => _asyncify_start_unwind(Asyncify.currData));
+          }
+        } else if (Asyncify.state === Asyncify.State.Rewinding) {
+          // Stop a resume.
+          Asyncify.state = Asyncify.State.Normal;
+          runAndAbortIfError(_asyncify_stop_rewind);
+          _free(Asyncify.currData);
+          Asyncify.currData = null;
+          // Call all sleep callbacks now that the sleep-resume is all done.
+          Asyncify.sleepCallbacks.forEach(callUserCallback);
+        } else {
+          abort(`invalid state: ${Asyncify.state}`);
+        }
+        return Asyncify.handleSleepReturnValue;
+      },
+  handleAsync:(startAsync) => Asyncify.handleSleep((wakeUp) => {
+        // TODO: add error handling as a second param when handleSleep implements it.
+        startAsync().then(wakeUp);
+      }),
+  };
+
+  var getCFunc = (ident) => {
+      var func = Module['_' + ident]; // closure exported function
+      assert(func, 'Cannot call unknown function ' + ident + ', make sure it is exported');
+      return func;
+    };
+  
+  var writeArrayToMemory = (array, buffer) => {
+      assert(array.length >= 0, 'writeArrayToMemory array must have a length (should be an array or typed array)')
+      HEAP8.set(array, buffer);
+    };
+  
+  
+  var stringToUTF8 = (str, outPtr, maxBytesToWrite) => {
+      assert(typeof maxBytesToWrite == 'number', 'stringToUTF8(str, outPtr, maxBytesToWrite) is missing the third parameter that specifies the length of the output buffer!');
+      return stringToUTF8Array(str, HEAPU8, outPtr, maxBytesToWrite);
+    };
+  
+  var stackAlloc = (sz) => __emscripten_stack_alloc(sz);
+  var stringToUTF8OnStack = (str) => {
+      var size = lengthBytesUTF8(str) + 1;
+      var ret = stackAlloc(size);
+      stringToUTF8(str, ret, size);
+      return ret;
+    };
+  
+  
+  
+  
+  
+  
+  
+    /**
+     * @param {string|null=} returnType
+     * @param {Array=} argTypes
+     * @param {Arguments|Array=} args
+     * @param {Object=} opts
+     */
+  var ccall = (ident, returnType, argTypes, args, opts) => {
+      // For fast lookup of conversion functions
+      var toC = {
+        'string': (str) => {
+          var ret = 0;
+          if (str !== null && str !== undefined && str !== 0) { // null string
+            ret = stringToUTF8OnStack(str);
+          }
+          return ret;
+        },
+        'array': (arr) => {
+          var ret = stackAlloc(arr.length);
+          writeArrayToMemory(arr, ret);
+          return ret;
+        }
+      };
+  
+      function convertReturnValue(ret) {
+        if (returnType === 'string') {
+          return UTF8ToString(ret);
+        }
+        if (returnType === 'boolean') return Boolean(ret);
+        return ret;
+      }
+  
+      var func = getCFunc(ident);
+      var cArgs = [];
+      var stack = 0;
+      assert(returnType !== 'array', 'Return type should not be "array".');
+      if (args) {
+        for (var i = 0; i < args.length; i++) {
+          var converter = toC[argTypes[i]];
+          if (converter) {
+            if (stack === 0) stack = stackSave();
+            cArgs[i] = converter(args[i]);
+          } else {
+            cArgs[i] = args[i];
+          }
         }
       }
-      quit_(1, e);
+      // Data for a previous async operation that was in flight before us.
+      var previousAsync = Asyncify.currData;
+      var ret = func(...cArgs);
+      function onDone(ret) {
+        runtimeKeepalivePop();
+        if (stack !== 0) stackRestore(stack);
+        return convertReturnValue(ret);
+      }
+    var asyncMode = opts?.async;
+  
+      // Keep the runtime alive through all calls. Note that this call might not be
+      // async, but for simplicity we push and pop in all calls.
+      runtimeKeepalivePush();
+      if (Asyncify.currData != previousAsync) {
+        // A change in async operation happened. If there was already an async
+        // operation in flight before us, that is an error: we should not start
+        // another async operation while one is active, and we should not stop one
+        // either. The only valid combination is to have no change in the async
+        // data (so we either had one in flight and left it alone, or we didn't have
+        // one), or to have nothing in flight and to start one.
+        assert(!(previousAsync && Asyncify.currData), 'We cannot start an async operation when one is already flight');
+        assert(!(previousAsync && !Asyncify.currData), 'We cannot stop an async operation in flight');
+        // This is a new async operation. The wasm is paused and has unwound its stack.
+        // We need to return a Promise that resolves the return value
+        // once the stack is rewound and execution finishes.
+        assert(asyncMode, 'The call to ' + ident + ' is running asynchronously. If this was intended, add the async option to the ccall/cwrap call.');
+        return Asyncify.whenDone().then(onDone);
+      }
+  
+      ret = onDone(ret);
+      // If this is an async ccall, ensure we return a promise
+      if (asyncMode) return Promise.resolve(ret);
+      return ret;
     };
+
+
+  var FS_createPath = (...args) => FS.createPath(...args);
+
+
+
+  var FS_unlink = (...args) => FS.unlink(...args);
+
+  var FS_createLazyFile = (...args) => FS.createLazyFile(...args);
+
+  var FS_createDevice = (...args) => FS.createDevice(...args);
 
   FS.createPreloadedFile = FS_createPreloadedFile;
   FS.staticInit();;
@@ -3876,6 +4592,16 @@ if (Module['wasmBinary']) wasmBinary = Module['wasmBinary'];
 }
 
 // Begin runtime exports
+  Module['addRunDependency'] = addRunDependency;
+  Module['removeRunDependency'] = removeRunDependency;
+  Module['ccall'] = ccall;
+  Module['UTF8ToString'] = UTF8ToString;
+  Module['FS_createPreloadedFile'] = FS_createPreloadedFile;
+  Module['FS_unlink'] = FS_unlink;
+  Module['FS_createPath'] = FS_createPath;
+  Module['FS_createDevice'] = FS_createDevice;
+  Module['FS_createDataFile'] = FS_createDataFile;
+  Module['FS_createLazyFile'] = FS_createLazyFile;
   var missingLibrarySymbols = [
   'writeI53ToI64',
   'writeI53ToI64Clamped',
@@ -3887,12 +4613,9 @@ if (Module['wasmBinary']) wasmBinary = Module['wasmBinary'];
   'convertI32PairToI53',
   'convertI32PairToI53Checked',
   'convertU32PairToI53',
-  'stackAlloc',
   'getTempRet0',
   'setTempRet0',
   'zeroMemory',
-  'getHeapMax',
-  'growMemory',
   'inetPton4',
   'inetNtop4',
   'inetPton6',
@@ -3906,13 +4629,7 @@ if (Module['wasmBinary']) wasmBinary = Module['wasmBinary'];
   'listenOnce',
   'autoResumeAudioContext',
   'getDynCaller',
-  'dynCall',
-  'runtimeKeepalivePush',
-  'runtimeKeepalivePop',
-  'callUserCallback',
-  'maybeExit',
   'asmjsMangle',
-  'alignMemory',
   'HandleAllocator',
   'getNativeTypeSize',
   'addOnInit',
@@ -3923,10 +4640,8 @@ if (Module['wasmBinary']) wasmBinary = Module['wasmBinary'];
   'STACK_ALIGN',
   'POINTER_SIZE',
   'ASSERTIONS',
-  'ccall',
   'cwrap',
   'uleb128Encode',
-  'sigToWasmTypes',
   'generateFuncType',
   'convertJsFunctionToWasm',
   'getEmptyTableSlot',
@@ -3939,7 +4654,6 @@ if (Module['wasmBinary']) wasmBinary = Module['wasmBinary'];
   'strLen',
   'reSign',
   'formatString',
-  'stringToUTF8',
   'intArrayToString',
   'AsciiToString',
   'stringToAscii',
@@ -3950,8 +4664,6 @@ if (Module['wasmBinary']) wasmBinary = Module['wasmBinary'];
   'stringToUTF32',
   'lengthBytesUTF32',
   'stringToNewUTF8',
-  'stringToUTF8OnStack',
-  'writeArrayToMemory',
   'registerKeyEventCallback',
   'maybeCStringToJsString',
   'findEventTarget',
@@ -3997,9 +4709,9 @@ if (Module['wasmBinary']) wasmBinary = Module['wasmBinary'];
   'getCallstack',
   'convertPCtoSourceLocation',
   'getEnvStrings',
+  'checkWasiClock',
   'wasiRightsToMuslOFlags',
   'wasiOFlagsToMuslOFlags',
-  'safeSetTimeout',
   'setImmediateWrapped',
   'safeRequestAnimationFrame',
   'clearImmediateWrapped',
@@ -4041,7 +4753,6 @@ if (Module['wasmBinary']) wasmBinary = Module['wasmBinary'];
   '__glGetActiveAttribOrUniform',
   'writeGLArray',
   'registerWebGlEventCallback',
-  'runAndAbortIfError',
   'ALLOC_NORMAL',
   'ALLOC_STACK',
   'allocate',
@@ -4054,8 +4765,6 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
 
   var unexportedSymbols = [
   'run',
-  'addRunDependency',
-  'removeRunDependency',
   'out',
   'err',
   'callMain',
@@ -4079,9 +4788,11 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'bigintToI53Checked',
   'stackSave',
   'stackRestore',
+  'stackAlloc',
   'ptrToString',
   'exitJS',
-  'abortOnCannotGrowMemory',
+  'getHeapMax',
+  'growMemory',
   'ENV',
   'ERRNO_CODES',
   'strError',
@@ -4091,14 +4802,22 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'timers',
   'warnOnce',
   'readEmAsmArgsArray',
+  'dynCallLegacy',
+  'dynCall',
   'handleException',
   'keepRuntimeAlive',
+  'runtimeKeepalivePush',
+  'runtimeKeepalivePop',
+  'callUserCallback',
+  'maybeExit',
   'asyncLoad',
+  'alignMemory',
   'mmapAlloc',
   'wasmTable',
   'noExitRuntime',
   'addOnPreRun',
   'addOnPostRun',
+  'sigToWasmTypes',
   'freeTableIndexes',
   'functionsInTableMap',
   'setValue',
@@ -4107,11 +4826,13 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'PATH_FS',
   'UTF8Decoder',
   'UTF8ArrayToString',
-  'UTF8ToString',
   'stringToUTF8Array',
+  'stringToUTF8',
   'lengthBytesUTF8',
   'intArrayFromString',
   'UTF16Decoder',
+  'stringToUTF8OnStack',
+  'writeArrayToMemory',
   'JSEvents',
   'specialHTMLTargets',
   'findCanvasEventTarget',
@@ -4119,11 +4840,11 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'restoreOldWindowedStyle',
   'UNWIND_CACHE',
   'ExitStatus',
-  'checkWasiClock',
   'doReadv',
   'doWritev',
   'initRandomFill',
   'randomFill',
+  'safeSetTimeout',
   'emSetImmediate',
   'emClearImmediate_deps',
   'emClearImmediate',
@@ -4145,14 +4866,10 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'MONTH_DAYS_LEAP_CUMULATIVE',
   'SYSCALLS',
   'preloadPlugins',
-  'FS_createPreloadedFile',
   'FS_modeStringToFlags',
   'FS_getMode',
   'FS_stdin_getChar_buffer',
   'FS_stdin_getChar',
-  'FS_unlink',
-  'FS_createPath',
-  'FS_createDevice',
   'FS_readFile',
   'FS',
   'FS_root',
@@ -4258,9 +4975,7 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'FS_findObject',
   'FS_analyzePath',
   'FS_createFile',
-  'FS_createDataFile',
   'FS_forceLoadFile',
-  'FS_createLazyFile',
   'FS_absolutePath',
   'FS_createFolder',
   'FS_createLink',
@@ -4280,6 +4995,9 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'EGL',
   'GLEW',
   'IDBStore',
+  'runAndAbortIfError',
+  'Asyncify',
+  'Fibers',
   'SDL',
   'SDL_gfx',
   'allocateUTF8',
@@ -4305,11 +5023,9 @@ var wasmImports = {
   /** @export */
   _abort_js: __abort_js,
   /** @export */
-  clock_time_get: _clock_time_get,
-  /** @export */
-  emscripten_get_now: _emscripten_get_now,
-  /** @export */
   emscripten_resize_heap: _emscripten_resize_heap,
+  /** @export */
+  emscripten_sleep: _emscripten_sleep,
   /** @export */
   fd_close: _fd_close,
   /** @export */
@@ -4319,47 +5035,37 @@ var wasmImports = {
   /** @export */
   fd_write: _fd_write
 };
-var wasmExports;
-createWasm();
+var wasmExports = await createWasm();
 // Imports from the Wasm binary.
 var ___wasm_call_ctors = createExportWrapper('__wasm_call_ctors', 0);
 var _fflush = createExportWrapper('fflush', 1);
-var _main = Module['_main'] = createExportWrapper('main', 2);
+var _init_jukebox = Module['_init_jukebox'] = createExportWrapper('init_jukebox', 0);
+var _process_jukebox_input = Module['_process_jukebox_input'] = createExportWrapper('process_jukebox_input', 1);
 var _strerror = createExportWrapper('strerror', 1);
-var _emscripten_stack_get_end = () => (_emscripten_stack_get_end = wasmExports['emscripten_stack_get_end'])();
-var _emscripten_stack_get_base = () => (_emscripten_stack_get_base = wasmExports['emscripten_stack_get_base'])();
-var _emscripten_stack_init = () => (_emscripten_stack_init = wasmExports['emscripten_stack_init'])();
-var _emscripten_stack_get_free = () => (_emscripten_stack_get_free = wasmExports['emscripten_stack_get_free'])();
-var __emscripten_stack_restore = (a0) => (__emscripten_stack_restore = wasmExports['_emscripten_stack_restore'])(a0);
-var __emscripten_stack_alloc = (a0) => (__emscripten_stack_alloc = wasmExports['_emscripten_stack_alloc'])(a0);
-var _emscripten_stack_get_current = () => (_emscripten_stack_get_current = wasmExports['emscripten_stack_get_current'])();
+var _emscripten_stack_get_end = wasmExports['emscripten_stack_get_end']
+var _emscripten_stack_get_base = wasmExports['emscripten_stack_get_base']
+var _malloc = Module['_malloc'] = createExportWrapper('malloc', 1);
+var _free = Module['_free'] = createExportWrapper('free', 1);
+var _emscripten_stack_init = wasmExports['emscripten_stack_init']
+var _emscripten_stack_get_free = wasmExports['emscripten_stack_get_free']
+var __emscripten_stack_restore = wasmExports['_emscripten_stack_restore']
+var __emscripten_stack_alloc = wasmExports['_emscripten_stack_alloc']
+var _emscripten_stack_get_current = wasmExports['emscripten_stack_get_current']
+var dynCall_ii = Module['dynCall_ii'] = createExportWrapper('dynCall_ii', 2);
+var dynCall_iiii = Module['dynCall_iiii'] = createExportWrapper('dynCall_iiii', 4);
+var dynCall_jiji = Module['dynCall_jiji'] = createExportWrapper('dynCall_jiji', 4);
+var dynCall_iidiiii = Module['dynCall_iidiiii'] = createExportWrapper('dynCall_iidiiii', 7);
+var dynCall_vii = Module['dynCall_vii'] = createExportWrapper('dynCall_vii', 3);
+var _asyncify_start_unwind = createExportWrapper('asyncify_start_unwind', 1);
+var _asyncify_stop_unwind = createExportWrapper('asyncify_stop_unwind', 0);
+var _asyncify_start_rewind = createExportWrapper('asyncify_start_rewind', 1);
+var _asyncify_stop_rewind = createExportWrapper('asyncify_stop_rewind', 0);
 
 
 // include: postamble.js
 // === Auto-generated postamble setup entry stuff ===
 
 var calledRun;
-
-function callMain() {
-  assert(runDependencies == 0, 'cannot call main when async dependencies remain! (listen on Module["onRuntimeInitialized"])');
-  assert(typeof onPreRuns === 'undefined' || onPreRuns.length == 0, 'cannot call main when preRun functions remain to be called');
-
-  var entryFunction = _main;
-
-  var argc = 0;
-  var argv = 0;
-
-  try {
-
-    var ret = entryFunction(argc, argv);
-
-    // if we're not running an evented main loop, it's time to exit
-    exitJS(ret, /* implicit = */ true);
-    return ret;
-  } catch (e) {
-    return handleException(e);
-  }
-}
 
 function stackCheckInit() {
   // This is normally called automatically during __wasm_call_ctors but need to
@@ -4398,13 +5104,11 @@ function run() {
 
     initRuntime();
 
-    preMain();
-
+    readyPromiseResolve(Module);
     Module['onRuntimeInitialized']?.();
     consumedModuleProp('onRuntimeInitialized');
 
-    var noInitialRun = Module['noInitialRun'] || false;
-    if (!noInitialRun) callMain();
+    assert(!Module['_main'], 'compiled without a main, but one is present. if you added it from JS, use Module["onRuntimeInitialized"]');
 
     postRun();
   }
@@ -4476,3 +5180,42 @@ run();
 
 // end include: postamble.js
 
+// include: postamble_modularize.js
+// In MODULARIZE mode we wrap the generated code in a factory function
+// and return either the Module itself, or a promise of the module.
+//
+// We assign to the `moduleRtn` global here and configure closure to see
+// this as and extern so it won't get minified.
+
+moduleRtn = readyPromise;
+
+// Assertion for attempting to access module properties on the incoming
+// moduleArg.  In the past we used this object as the prototype of the module
+// and assigned properties to it, but now we return a distinct object.  This
+// keeps the instance private until it is ready (i.e the promise has been
+// resolved).
+for (const prop of Object.keys(Module)) {
+  if (!(prop in moduleArg)) {
+    Object.defineProperty(moduleArg, prop, {
+      configurable: true,
+      get() {
+        abort(`Access to module property ('${prop}') is no longer possible via the module constructor argument; Instead, use the result of the module constructor.`)
+      }
+    });
+  }
+}
+// end include: postamble_modularize.js
+
+
+
+  return moduleRtn;
+}
+);
+})();
+if (typeof exports === 'object' && typeof module === 'object') {
+  module.exports = Module;
+  // This default export looks redundant, but it allows TS to import this
+  // commonjs style module.
+  module.exports.default = Module;
+} else if (typeof define === 'function' && define['amd'])
+  define([], () => Module);

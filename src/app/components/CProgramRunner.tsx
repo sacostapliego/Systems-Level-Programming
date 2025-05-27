@@ -118,7 +118,18 @@ const CProgramRunner: React.FC<CProgramRunnerProps> = ({
     try {
       // Check if the specific C input processing function exists.
       if (typeof moduleRef.current[actualModuleProcessFnName] === 'function') {
-        moduleRef.current.ccall(processFnName, 'void', ['string'], [inputValue]);
+        const ccallOptions: { async?: boolean } = {};
+        if (programId === "jukebox") { // Or a more generic way to detect async functions
+            ccallOptions.async = true;
+        }
+        
+        moduleRef.current.ccall(
+            processFnName,
+            'void',      // return type
+            ['string'],  // argument types
+            [inputValue], // arguments
+            ccallOptions 
+        );
         // The C function's own printf statements (with fflush) will be caught by
         // the 'print' callback in useEmscripten and added to the output.
       } else {
