@@ -1,9 +1,9 @@
-import type { NextConfig } from 'next';
+/** @type {import('next').NextConfig} */
 
-const REPO_NAME = 'Systems-Level-Programming'; 
+const REPO_NAME = 'Systems-Level-Programming';
 
-const nextConfig: NextConfig = {
-  output: 'export', 
+const nextConfig = {
+  output: 'export',
   basePath: `/${REPO_NAME}`,
   assetPrefix: `/${REPO_NAME}`,
   images: {

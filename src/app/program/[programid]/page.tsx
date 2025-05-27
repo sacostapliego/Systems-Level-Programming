@@ -43,9 +43,10 @@ export async function generateStaticParams() {
 
 interface PageProps {
   params: { programid: string };
+  searchParams?: { [key: string]: string | string[] | undefined }; // Add this line
 }
 
-export default async function ProgramPage({ params }: PageProps) {
+export default async function ProgramPage({ params }: PageProps) { // You can add searchParams here if needed
   const programId = params.programid;
   const program = programMap[programId] || null;
 
