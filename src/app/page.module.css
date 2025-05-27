@@ -68,16 +68,3 @@
   line-height: 1.6; /* Improved readability */
   opacity: 0.8; /* Slightly less prominent paragraph text */
 }
-
-/* Define some default card colors if not coming from globals -- you might need to adjust these */
-:root {
-  --card-rgb: 100, 100, 100; /* Example: a neutral gray */
-  --card-border-rgb: 150, 150, 150;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --card-rgb: 50, 50, 50; /* Darker card for dark mode */
-    --card-border-rgb: 80, 80, 80;
-  }
-}

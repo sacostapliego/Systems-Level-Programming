@@ -49,3 +49,24 @@ body {
   color: #666666;
   cursor: not-allowed;
 }
+
+:root {
+  --card-rgb: 100, 100, 100; /* Example: a neutral gray for light mode */
+  --card-border-rgb: 150, 150, 150; /* Example for light mode */
+
+  /* Define other global variables if needed, e.g., from your page.module.css comments */
+  /* --background: ...; */
+  /* --foreground: ...; */
+  /* --max-width: ...; */
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --card-rgb: 50, 50, 50; /* Darker card for dark mode */
+    --card-border-rgb: 80, 80, 80; /* Example for dark mode */
+
+    /* Define dark mode versions of other global variables if needed */
+    /* --background: ...; */
+    /* --foreground: ...; */
+  }
+}

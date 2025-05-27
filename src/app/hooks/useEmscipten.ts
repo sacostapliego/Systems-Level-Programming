@@ -20,6 +20,8 @@ interface UseEmscriptenReturn {
   setIsLoaded: Dispatch<SetStateAction<boolean>>;
 }
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH || '';
+
 export const useEmscripten = ({
   programName, // Display name, used for logging
   scriptPath,
