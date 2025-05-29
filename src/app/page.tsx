@@ -3,15 +3,15 @@ import styles from './page.module.css'; // Assuming you have some styles
 
 export default function Home() {
   const programs = [
-    { id: 'jukebox', name: 'Jukebox', description: 'Play song lyrics.' },
-    { id: 'inventory', name: 'Inventory Management System', description: 'Manage product inventory.' },
-    { id: 'minigame', name: 'Minigame', description: 'Guess the secret code.' },
+    { id: 'jukebox', name: 'Jukebox', description: 'Play song lyrics. | Homework 1' },
+    { id: 'inventory', name: 'Inventory Management System', description: 'Manage product inventory. | Homework 2' },
+    { id: 'minigame', name: 'Minigame', description: 'Guess the secret code. | Homework 3' },
   ];
 
   return (
     <main className={styles.main}>
       <div className={styles.description}>
-        <h1>Some Basic C Programs</h1>
+        <h1>System Level Programming</h1>
         <p>Select a program to run:</p>
       </div>
 

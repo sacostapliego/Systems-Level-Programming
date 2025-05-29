@@ -132,7 +132,7 @@ const CProgramRunner: React.FC<CProgramRunnerProps> = ({
   return (
     // The main div now directly contains the "run" program UI
     // The style is the same as the contentBoxStyle in page.tsx
-    <div style={{ border: '1px solid lightgray', padding: '0.5em', margin: '0 0 1em 0', backgroundColor: '#28282B', color: 'white', borderRadius: '4px', minHeight: '350px' }}>
+    <div style={{padding: '0.5em', margin: '0 0 1em 0', backgroundColor: '#28282B', color: 'white', borderRadius: '4px', minHeight: '350px', borderTopLeftRadius: '0' }}>
       {!isRunning && isLoaded && (
         <button
           onClick={handleInitializeProgram}

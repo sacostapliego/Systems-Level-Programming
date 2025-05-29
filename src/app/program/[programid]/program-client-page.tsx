@@ -78,13 +78,9 @@ export default function ProgramClientPage({ programId, initialProgram }: Program
     color: 'white',
     marginRight: '5px',
     borderRadius: '4px 4px 0 0',
-    borderColor: activeTab === tabName ? 'lightgray' : 'transparent',
-    borderWidth: '1px',
-    borderStyle: 'solid',
   });
 
   const contentBoxStyle = {
-    border: '1px solid lightgray',
     padding: '0.5em',
     margin: '0 0 1em 0',
     backgroundColor: '#28282B',
@@ -124,7 +120,6 @@ export default function ProgramClientPage({ programId, initialProgram }: Program
       )}
       {activeTab === 'code' && program.originalCodePath && (
         <div style={contentBoxStyle}>
-          <h5>Original C Code: {program.originalCodePath ? `(${program.originalCodePath.split('/').pop()})` : ''}</h5>
           {isLoadingCode && <p>Loading code...</p>}
           {originalCodeContent && !isLoadingCode && (
             <pre
