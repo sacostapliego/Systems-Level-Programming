@@ -6,6 +6,8 @@ export default function Home() {
     { id: 'jukebox', name: 'Jukebox', description: 'Play song lyrics. | Homework 1' },
     { id: 'inventory', name: 'Inventory Management System', description: 'Manage product inventory. | Homework 2' },
     { id: 'minigame', name: 'Minigame', description: 'Guess the secret code. | Homework 3' },
+    { id: 'grades', name: 'Grades Management System', description: 'Manage student grades. | Lab 13' },
+    
   ];
 
   return (

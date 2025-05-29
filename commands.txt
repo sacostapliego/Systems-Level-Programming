@@ -7,3 +7,6 @@ emcc "C programs/Homework 2/acosta-pliego_steven_minigame.c" -o "public/minigame
 
 Homework 3:
 emcc "C programs/Homework 3/acosta-pliego_steven_inventory.c" -o "public/inventory.js" -sMODULARIZE=1 -sALLOW_MEMORY_GROWTH -sEXPORTED_RUNTIME_METHODS="['ccall', 'UTF8ToString']" -sEXPORTED_FUNCTIONS="['_init_inventory', '_process_inventory_input', '_malloc', '_free']"
+
+Lab 13:
+emcc "C programs/Lab 13/acosta-pliego_steven_dynamic_grade_management.c" -o "public/grades.js" -sMODULARIZE=1 -sALLOW_MEMORY_GROWTH -sEXPORTED_RUNTIME_METHODS="['ccall', 'UTF8ToString']" -sEXPORTED_FUNCTIONS="['_init_grades', '_process_grades_input', '_malloc', '_free']"

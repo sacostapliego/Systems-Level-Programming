@@ -33,6 +33,13 @@ const programMap: Record<string, ProgramDetails> = {
     description: 'Try to guess the 3-digit secret code.',
     originalCodePath: '/minigame.txt',
   },
+  grades: {
+    id: 'grades',
+    name: 'Grades Management System',
+    scriptPath: '/grades.js',
+    description: 'Manage student grades and calculate averages.',
+    originalCodePath: '/grades.txt',
+  }
 };
 
 export async function generateStaticParams() {
